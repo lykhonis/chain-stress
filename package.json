@@ -1,0 +1,13 @@
+{
+  "name": "chain-stress",
+  "version": "0.1.0",
+  "description": "Chain stress loader",
+  "main": "src/app.js",
+  "scripts": {
+    "stress": "node src/app.js"
+  },
+  "dependencies": {
+    "web3": "^1.7.3",
+    "yargs": "^17.4.1"
+  }
+}
