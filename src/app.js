@@ -115,7 +115,7 @@ const main = async () => {
         account,
         receiverAddress: args.receiverAddress ?? account.address,
         count: args.count,
-        amount: Web3.utils.toBN(args.amount),
+        amount: args.amount.toString(),
         noWait: args.noWait,
       })
     }
