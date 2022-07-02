@@ -1,27 +1,44 @@
 const Web3 = require('web3')
 const yargs = require('yargs')
 
+const estimateGasPrice = async (web3) => {
+  const minimumPrice = Web3.utils.toBN(Web3.utils.toWei('1.5', 'gwei'))
+  const gasPrice = await web3.eth.getGasPrice()
+  if (gasPrice) {
+    const networkPrice = Web3.utils.toBN(gasPrice)
+    return networkPrice.lt(minimumPrice) ? minimumPrice : networkPrice
+  }
+  return minimumPrice
+}
+
 const send = async ({
   web3,
   account,
   receiverAddress,
   count,
   amount,
-  wait,
+  noWait,
 }) => {
   const amountInWei = Web3.utils.toWei(amount, 'ether')
   const gasLimit = 21_000
-  const gasPrice = Web3.utils.toBN((await web3.eth.getGasPrice()) ?? '7')
+  const gasPrice = await estimateGasPrice(web3)
+  const balanceInWei = await web3.eth.getBalance(account.address)
+  const blockNumber = await web3.eth.getBlockNumber()
+  const block = await web3.eth.getBlock(blockNumber)
+  const nonce = await web3.eth.getTransactionCount(account.address)
 
   console.log(`Sending tokens:`)
   console.log(`  Sender: ${account.address}`)
   console.log(`  Receiver: ${receiverAddress}`)
-  console.log(`  Amount: ${amount} (${amountInWei} wei)`)
+  console.log(`  Balanace: ${Web3.utils.fromWei(balanceInWei)} LYX (${balanceInWei} wei)`)
+  console.log(`  Amount: ${amount} LYX (${amountInWei} wei)`)
   console.log(`  Count: ${count}`)
-  console.log(`  Wait: ${wait === true}`)
+  console.log(`  Nonce: ${nonce}`)
+  console.log(`  No Wait: ${noWait === true}`)
   console.log(`  Gas Limit: ${gasLimit}`)
   console.log(`  Gas Price: ${Web3.utils.fromWei(gasPrice)} (${gasPrice} wei)`)
 
+  const transactions = []
   for (let i = 1; i <= count; i++) {
     console.log(`Sending transaction: #${i}`)
     const transaction = web3.eth.sendTransaction({
@@ -30,12 +47,18 @@ const send = async ({
       data: '0x',
       value: amountInWei,
       gas: gasLimit,
-      gasPrice,
+      maxPriorityFeePerGas: gasPrice,
+      maxFeePerGas: gasPrice.add(Web3.utils.toBN((block.baseFeePerGas ?? '7'))),
+      nonce: nonce + i - 1,
     })
-    if (wait) {
+    transactions.push(transaction)
+    if (!noWait) {
       await transaction
     }
   }
+
+  console.log('Waiting for remaining transactions to complete')
+  await Promise.all(transactions)
 }
 
 const main = async () => {
@@ -62,10 +85,10 @@ const main = async () => {
       type: 'number',
       default: 1,
     })
-    .option('wait', {
-      description: 'Wait for each transaction to be mined',
+    .option('noWait', {
+      description: 'Do not wait for each transaction to be mined',
       type: 'boolean',
-      default: true,
+      default: false,
     })
     .demandOption(['rpcUrl', 'account'])
     .demandCommand(1)
@@ -86,7 +109,7 @@ const main = async () => {
       receiverAddress: args.receiverAddress ?? account.address,
       count: args.count,
       amount: Web3.utils.toBN(args.amount),
-      wait: args.wait,
+      noWait: args.noWait,
     })
   }
 }
