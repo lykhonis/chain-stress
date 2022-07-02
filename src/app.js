@@ -90,6 +90,11 @@ const main = async () => {
       type: 'boolean',
       default: false,
     })
+    .option('repeat', {
+      description: 'Repeats command number of times',
+      type: 'number',
+      default: 1,
+    })
     .demandOption(['rpcUrl', 'account'])
     .demandCommand(1)
     .help()
@@ -101,16 +106,19 @@ const main = async () => {
 
   console.log(`Network RPC URL: ${args.rpcUrl}`)
   console.log(`Actor: ${account.address}`)
+  console.log(`Repeat: ${args.repeat}`)
 
-  if (args._.includes('send')) {
-    await send({
-      web3,
-      account,
-      receiverAddress: args.receiverAddress ?? account.address,
-      count: args.count,
-      amount: Web3.utils.toBN(args.amount),
-      noWait: args.noWait,
-    })
+  for (let i = 0; i < args.repeat; i++) {
+    if (args._.includes('send')) {
+      await send({
+        web3,
+        account,
+        receiverAddress: args.receiverAddress ?? account.address,
+        count: args.count,
+        amount: Web3.utils.toBN(args.amount),
+        noWait: args.noWait,
+      })
+    }
   }
 }
 
