@@ -21,7 +21,6 @@ const send = async ({
 }) => {
   const amountInWei = Web3.utils.toWei(amount, 'ether')
   const gasLimit = 21_000
-  const gasPrice = await estimateGasPrice(web3)
   const balanceInWei = await web3.eth.getBalance(account.address)
   const blockNumber = await web3.eth.getBlockNumber()
   const block = await web3.eth.getBlock(blockNumber)
@@ -36,11 +35,13 @@ const send = async ({
   console.log(`  Nonce: ${nonce}`)
   console.log(`  No Wait: ${noWait === true}`)
   console.log(`  Gas Limit: ${gasLimit}`)
-  console.log(`  Gas Price: ${Web3.utils.fromWei(gasPrice)} (${gasPrice} wei)`)
 
   const transactions = []
+  const gasSurplus = Web3.utils.toBN(Web3.utils.toWei('2', 'gwei'))
+
   for (let i = 1; i <= count; i++) {
     console.log(`Sending transaction: #${i}`)
+    const gasPrice = (await estimateGasPrice(web3)).add(gasSurplus)
     const transaction = web3.eth.sendTransaction({
       from: account.address,
       to: receiverAddress,
